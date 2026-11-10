@@ -20,6 +20,11 @@ INSTALLED_APPS = [
     "apps.trips",
 ]
 
+# OpenStreetMap's tile servers reject requests that carry no Referer (HTTP 403 "Access blocked").
+# Django's default, "same-origin", strips it from cross-site requests, so the map tiles would
+# load on localhost but fail on a real domain. Send the site's origin only, never the full URL.
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",

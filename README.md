@@ -85,6 +85,7 @@ Environment variables: `ORS_API_KEY` (required), `DJANGO_SECRET_KEY` (generated 
 ## Limits
 
 - OpenRouteService's free tier is about 2,000 requests a day (cached and throttled by the app), and it refuses alternative routes over 100 km, which is why Valhalla supplies them. The public Valhalla and Open-Meteo services are shared; if one is slow or down the app degrades (fewer routes, or an error message) instead of failing silently.
+- Map tiles come from OpenStreetMap's volunteer-run servers, which block requests without a `Referer` (the app sends its site origin; see `SECURE_REFERRER_POLICY` in `backend/config/settings/base.py`) and are meant for light use. For real traffic, switch the `TileLayer` URL in `frontend/src/features/map/MapView.tsx` to a keyed or self-hosted tile provider.
 - Forecasts reach about 15 days; the 48-hour heatmap needs departures within roughly 13 days.
 - SafeHaul is a decision aid, not a substitute for official road and weather advisories.
 

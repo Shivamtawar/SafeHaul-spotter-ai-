@@ -52,3 +52,9 @@ def test_without_a_build_the_page_says_how_to_run_the_frontend(
     response = APIClient().get("/plan")
     assert response.status_code == 404
     assert "npm run dev" in response.content.decode()
+
+
+def test_cross_site_requests_such_as_map_tiles_carry_the_sites_origin(built_frontend: Path) -> None:
+    # OpenStreetMap blocks tile requests without a Referer, so the policy must not be "same-origin".
+    response = APIClient().get("/plan")
+    assert response["Referrer-Policy"] == "strict-origin-when-cross-origin"
