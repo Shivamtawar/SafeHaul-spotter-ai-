@@ -1,11 +1,45 @@
 # SafeHaul
 
-Weather-aware truck routing. Enter a trip, a departure time and a load weight; SafeHaul finds up to three truck routes, checks the weather at every checkpoint **at the time the truck will be there**, scores each route with the risk and load rules, and recommends the safest one. A 48-hour forecast slider shows how the weather moves along the corridor.
+**Weather-aware truck routing.** Enter a trip, a departure time and a load weight. SafeHaul finds up to three truck routes, checks the weather at every checkpoint **at the time the truck will be there**, scores each route with the risk and load rules, and recommends the safest one. A 48-hour forecast slider shows how the weather moves along the corridor.
 
 Built for the Full Stack Developer assessment (React + Django).
 
-- **Live app:** _add the Render URL here after deploying_
-- **Walkthrough (Loom):** _add the link here_
+|  |  |
+|---|---|
+| **Live app** | https://safehaul-d6fu.onrender.com (free hosting: the first load after idle can take 30-60 s) |
+| **Walkthrough (Loom)** | _add the link after recording_ |
+| **API docs** | `/api/docs/` on the live app |
+
+![SafeHaul landing page](docs/screenshots/landing.png)
+
+## Screenshots
+
+**Compare three routes.** Each card shows distance, drive time, arrival and a bar of the miles at each risk level; the map shows every checkpoint coloured by risk.
+
+![Planner with three routes and the weather corridor](docs/screenshots/planner.png)
+
+**Scrub the next 48 hours.** The corridor re-colours instantly because every hour is calculated on the server and sent with the plan.
+
+![Forecast slider at +18 hours](docs/screenshots/forecast.png)
+
+**No Travel is impossible to miss.** The route stays visible but is flagged, dashed, ranked last, and the map shows a do-not-dispatch banner. _This screenshot uses simulated storm data, for illustration only; the live app always shows real forecasts._
+
+![A route with No Travel weather](docs/screenshots/no-travel-simulated.png)
+
+**Works on a phone.** The map pins to the top once there is a plan, and the controls are touch-sized.
+
+<img src="docs/screenshots/phone.png" alt="SafeHaul on a phone" width="260">
+
+## How to use it
+
+1. Open the app and choose **Plan a route** (or tap a popular trip such as Dallas to Denver to start pre-filled).
+2. Type a start and a destination and **pick each from the suggestions** (the form needs a chosen place, not just typed text).
+3. Set the **departure** (it defaults to about 30 minutes from now, in your local time), the **load weight** (1 to 120,000 lb) and how often to **sample weather**: every 10, 25 or 50 miles.
+4. Press **Find the safest route**. It takes a few seconds the first time; repeat trips are cached.
+5. Read the **route cards**, safest first. Click a card or a line on the map to select a route. Click a checkpoint for its ETA and the wind, rain and snow forecast for that hour. The "checkpoints" section lists the same data as a table.
+6. Use the **forecast slider** (0 to 48 hours after departure) or press play to watch the weather move. The line under it names the worst weather along the routes at that hour.
+
+Tips: a departure more than about 13 days away is rejected because forecasts only reach about 15 days; some trips honestly show fewer than three routes when there is no genuinely different road.
 
 ## What it does
 
@@ -17,27 +51,8 @@ Built for the Full Stack Developer assessment (React + Django).
 | Risk thresholds and load rules | `backend/apps/trips/domain/risk.py` (boundary-tested, property-tested) |
 | Recommend the best route (Severe miles, High miles, average risk, time) | `backend/apps/trips/domain/ranking.py` |
 | Show routes, checkpoints, risk, ETAs and summaries on a map | Route cards and Leaflet map (`features/routes`, `features/map`) |
-| Weather heatmap with a 0-48 hour forecast slider | Risk overlay and slider (`features/heatmap`); all 49 hours arrive with the plan, so scrubbing is instant |
-
-## Run it locally
-
-You need Python 3.14, Node 22+ and a free [OpenRouteService key](https://openrouteservice.org/dev/#/signup).
-
-```bash
-# one-time setup
-make install                      # backend venv + dependencies, frontend packages
-cp backend/.env.example backend/.env
-# edit backend/.env and set ORS_API_KEY=your-key
-
-# terminal 1: API on :8000
-cd backend && source .venv/bin/activate && python manage.py runserver
-# terminal 2: web app on :5173
-cd frontend && npm run dev
-```
-
-Open http://localhost:5173. API docs are at http://localhost:8000/api/docs/.
-
-Handy commands: `make test` (unit tests), `make e2e` (browser tests), `make lint typecheck`, `make audit`.
+| Weather heatmap with a 0-48 hour forecast slider | Risk overlay and slider (`features/heatmap`) |
+| GitHub repository, hosted application, Loom walkthrough | This repository, the live app above, the Loom link above |
 
 ## How the risk is scored
 
@@ -63,9 +78,52 @@ Each is recorded as a decision in [`docs/adr`](docs/adr).
 - **Wind** is sustained 10 m wind speed, not gusts.
 - **Fewer than three routes** can appear when no genuinely different road exists (routes that overlap 90% or more are merged).
 
+## Tech stack
+
+| | |
+|---|---|
+| **Frontend** | React 19, TypeScript (strict), Vite, React Router, TanStack Query, zod, Leaflet, Lucide icons, Inter |
+| **Backend** | Django 6, Django REST Framework, drf-spectacular (OpenAPI), WhiteNoise, gunicorn |
+| **Data (free)** | Open-Meteo (weather), OpenRouteService and Valhalla (routing, geocoding) on OpenStreetMap data |
+| **Quality** | pytest + hypothesis, Vitest + Testing Library, Playwright + axe, ruff, mypy strict, oxlint, pip-audit, npm audit |
+| **Hosting** | Render (one free web service) |
+
+## Run it locally
+
+You need Python 3.14, Node 22+ and a free [OpenRouteService key](https://openrouteservice.org/dev/#/signup).
+
+```bash
+# one-time setup
+make install                      # backend venv + dependencies, frontend packages
+cp backend/.env.example backend/.env
+# edit backend/.env and set ORS_API_KEY=your-key
+
+# terminal 1: API on :8000
+cd backend && source .venv/bin/activate && python manage.py runserver
+# terminal 2: web app on :5173
+cd frontend && npm run dev
+```
+
+Open http://localhost:5173. API docs are at http://localhost:8000/api/docs/.
+
+`make` is optional shorthand: `make test` (unit tests), `make e2e` (browser tests), `make lint typecheck`, `make audit`.
+
 ## Architecture
 
-See [ARCHITECTURE.md](ARCHITECTURE.md). In short: a layered Django API (`domain` / `providers` / `services` / `api`) where the risk and ranking logic is pure and fully tested, behind provider ports for routing, geocoding and weather; and a React + TypeScript single-page app that receives everything it needs in one `/api/v1/plan` response.
+See [ARCHITECTURE.md](ARCHITECTURE.md). In short: a layered Django API (`domain` / `providers` / `services` / `api`) where the risk and ranking logic is pure and fully tested, behind provider ports for routing, geocoding and weather; and a React single-page app that receives everything it needs in one `/api/v1/plan` response.
+
+```
+backend/   apps/trips/{domain,providers,services,api}   config/   tests/
+frontend/  src/{app,features,shared,styles}              e2e/
+docs/      adr/ (decisions)   screenshots/
+build.sh   render.yaml   Makefile   .github/workflows/
+```
+
+## Tests and quality
+
+- **Backend:** 258 tests, 100% coverage (gate: 90%), including property tests (more wind or a heavier load never lowers the risk).
+- **Frontend:** 140 unit tests; 24 Playwright browser tests on desktop and a phone-sized screen, with automated accessibility scans (axe) of the landing page, planner and error states.
+- **Static checks:** strict types on both sides, linting and formatting, dependency audits. GitHub Actions runs the same checks.
 
 ## Deploy to Render (free)
 
@@ -91,4 +149,4 @@ Environment variables: `ORS_API_KEY` (required), `DJANGO_SECRET_KEY` (generated 
 
 ## Data and credits
 
-Weather: [Open-Meteo](https://open-meteo.com/). Routing and place search: [OpenRouteService](https://openrouteservice.org/) and [Valhalla](https://valhalla.github.io/valhalla/), on [OpenStreetMap](https://www.openstreetmap.org/copyright) data. Map tiles: OpenStreetMap.
+Weather: [Open-Meteo](https://open-meteo.com/). Routing and place search: [OpenRouteService](https://openrouteservice.org/) and [Valhalla](https://valhalla.github.io/valhalla/), on [OpenStreetMap](https://www.openstreetmap.org/copyright) data. Map tiles: OpenStreetMap contributors.
