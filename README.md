@@ -1,1 +1,93 @@
-# SafeHaul-spotter-ai-
+# SafeHaul
+
+Weather-aware truck routing. Enter a trip, a departure time and a load weight; SafeHaul finds up to three truck routes, checks the weather at every checkpoint **at the time the truck will be there**, scores each route with the risk and load rules, and recommends the safest one. A 48-hour forecast slider shows how the weather moves along the corridor.
+
+Built for the Full Stack Developer assessment (React + Django).
+
+- **Live app:** _add the Render URL here after deploying_
+- **Walkthrough (Loom):** _add the link here_
+
+## What it does
+
+| Brief requirement | Where it lives |
+|---|---|
+| User enters origin, destination, departure time, load weight | Trip form (`frontend/src/features/trip-form`) |
+| Generate 3 route options with a routing API | OpenRouteService truck routes, topped up with Valhalla alternates (`backend/apps/trips/providers`) |
+| Sample weather every 10 / 25 / 50 miles at the truck's ETA | Interval selector; ETA from the routing steps (`domain/timing.py`, `services/plan_trip.py`) |
+| Risk thresholds and load rules | `backend/apps/trips/domain/risk.py` (boundary-tested, property-tested) |
+| Recommend the best route (Severe miles, High miles, average risk, time) | `backend/apps/trips/domain/ranking.py` |
+| Show routes, checkpoints, risk, ETAs and summaries on a map | Route cards and Leaflet map (`features/routes`, `features/map`) |
+| Weather heatmap with a 0-48 hour forecast slider | Risk overlay and slider (`features/heatmap`); all 49 hours arrive with the plan, so scrubbing is instant |
+
+## Run it locally
+
+You need Python 3.14, Node 22+ and a free [OpenRouteService key](https://openrouteservice.org/dev/#/signup).
+
+```bash
+# one-time setup
+make install                      # backend venv + dependencies, frontend packages
+cp backend/.env.example backend/.env
+# edit backend/.env and set ORS_API_KEY=your-key
+
+# terminal 1: API on :8000
+cd backend && source .venv/bin/activate && python manage.py runserver
+# terminal 2: web app on :5173
+cd frontend && npm run dev
+```
+
+Open http://localhost:5173. API docs are at http://localhost:8000/api/docs/.
+
+Handy commands: `make test` (unit tests), `make e2e` (browser tests), `make lint typecheck`, `make audit`.
+
+## How the risk is scored
+
+Each checkpoint gets the worst of its wind, rain and snow levels, then the load rules raise it.
+
+| | Low | Moderate | High | Severe | No Travel |
+|---|---|---|---|---|---|
+| Wind (mph) | < 25 | 25-34 | 35-44 | 45-54 | >= 55 |
+| Rain (in/hr) | < 0.10 | 0.10-0.25 | 0.25-0.50 | 0.50-1.00 | > 1.00 |
+| Snow (in/hr) | < 0.5 | 0.5-1.0 | 1.0-2.0 | 2.0-3.0 | > 3.0 |
+
+Load rules: wind >= 55 mph is No Travel for any load; 45-54 mph with more than 30,000 lb is No Travel; 35-44 mph with more than 40,000 lb is Severe.
+
+Routes are ranked by fewest Severe miles, then fewest High miles, then lowest average risk, then shortest time.
+
+### Assumptions the brief leaves open
+
+Each is recorded as a decision in [`docs/adr`](docs/adr).
+
+- **No Travel routes** stay visible, are flagged and ranked last, and are only recommended if every route has No Travel.
+- **Boundaries:** lower bounds are inclusive (rain 0.25 is High). The top bands follow the brief literally (rain 1.00 is still Severe; above 1.00 is No Travel).
+- **Miles per level:** each checkpoint stands for the road halfway to its neighbours; Severe and High miles are sums of those stretches. Average risk is mile-weighted.
+- **Wind** is sustained 10 m wind speed, not gusts.
+- **Fewer than three routes** can appear when no genuinely different road exists (routes that overlap 90% or more are merged).
+
+## Architecture
+
+See [ARCHITECTURE.md](ARCHITECTURE.md). In short: a layered Django API (`domain` / `providers` / `services` / `api`) where the risk and ranking logic is pure and fully tested, behind provider ports for routing, geocoding and weather; and a React + TypeScript single-page app that receives everything it needs in one `/api/v1/plan` response.
+
+## Deploy to Render (free)
+
+One web service builds the React app and serves it with Django (no CORS, no second service).
+
+1. Push the repository to GitHub.
+2. In Render choose **New > Blueprint**, select the repository, and Render reads [`render.yaml`](render.yaml).
+3. When asked, paste your `ORS_API_KEY` (it is never stored in git) and apply.
+4. Wait for the first build (a few minutes). Open the service URL and check `/healthz`.
+
+The build is [`build.sh`](build.sh): it builds the frontend, installs the backend, copies the build into `backend/frontend_dist`, and collects static files. Gunicorn then serves the API, the static assets (through WhiteNoise) and the app shell for every page route.
+
+The free tier sleeps after 15 minutes without traffic; the first request afterwards takes 30-60 seconds. Open the app once before a demo to warm it.
+
+Environment variables: `ORS_API_KEY` (required), `DJANGO_SECRET_KEY` (generated by the blueprint), `DJANGO_ALLOWED_HOSTS` (only for a custom domain; the Render hostname is trusted automatically), `VALHALLA_BASE_URL` and `OPEN_METEO_BASE_URL` (optional, to point at self-hosted instances).
+
+## Limits
+
+- OpenRouteService's free tier is about 2,000 requests a day (cached and throttled by the app), and it refuses alternative routes over 100 km, which is why Valhalla supplies them. The public Valhalla and Open-Meteo services are shared; if one is slow or down the app degrades (fewer routes, or an error message) instead of failing silently.
+- Forecasts reach about 15 days; the 48-hour heatmap needs departures within roughly 13 days.
+- SafeHaul is a decision aid, not a substitute for official road and weather advisories.
+
+## Data and credits
+
+Weather: [Open-Meteo](https://open-meteo.com/). Routing and place search: [OpenRouteService](https://openrouteservice.org/) and [Valhalla](https://valhalla.github.io/valhalla/), on [OpenStreetMap](https://www.openstreetmap.org/copyright) data. Map tiles: OpenStreetMap.

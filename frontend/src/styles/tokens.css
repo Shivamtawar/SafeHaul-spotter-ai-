@@ -1,0 +1,46 @@
+:root {
+  /* brand */
+  --brand: #158280;
+  --brand-ink: #0f6563;
+  --brand-soft: #e3f1f2;
+  --lavender: #f1f8f9;
+  --coral: #fc4c64;
+  --mint: #c3e0e2;
+  --green: #16a57a;
+  --green-soft: #e7f6f1;
+
+  /* neutrals */
+  --ink: #081836;
+  --muted: #52607a;
+  --subtle: #6b7280;
+  --bg: #ffffff;
+  --surface: #f5f9fb;
+  --line: #e1e9ee;
+
+  /* risk (the same five levels the API and map use) */
+  --risk-low: #15803d;
+  --risk-moderate: #ca8a04;
+  --risk-high: #ea580c;
+  --risk-severe: #dc2626;
+  --risk-no-travel: #7f1d1d;
+  --danger: #b91c1c;
+  --danger-soft: #fef2f2;
+  --warn-soft: #fffbeb;
+  --warn-ink: #92400e;
+
+  /* depth */
+  --shadow: 0 1px 2px rgb(8 24 54 / 0.04), 0 18px 40px -20px rgb(8 24 54 / 0.16);
+  --shadow-lg: 0 1px 2px rgb(8 24 54 / 0.04), 0 26px 56px -22px rgb(8 24 54 / 0.28);
+  --glass: rgb(255 255 255 / 0.82);
+
+  /* shape + rhythm */
+  --radius-sm: 10px;
+  --radius: 16px;
+  --radius-lg: 24px;
+  --gutter: clamp(20px, 4vw, 40px);
+  --section: clamp(88px, 11vw, 160px);
+  --ease: cubic-bezier(0.22, 0.7, 0.2, 1);
+  --focus: #2f6bff;
+
+  --font: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}

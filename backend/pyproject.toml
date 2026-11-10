@@ -1,0 +1,50 @@
+[project]
+name = "safehaul-backend"
+version = "0.1.0"
+description = "Weather-aware truck routing API"
+requires-python = ">=3.14"
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+extend-exclude = [".venv", "migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "SIM", "RUF", "PL", "PT", "DJ", "S", "T20"]
+ignore = ["PLR2004"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "PLR0913"]
+
+[tool.mypy]
+python_version = "3.14"
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+strict = true
+files = ["apps", "config"]
+
+[[tool.mypy.overrides]]
+module = ["apps.trips.api.*", "config.*"]
+disallow_subclassing_any = false
+disallow_untyped_decorators = false
+
+[tool.django-stubs]
+django_settings_module = "config.settings.dev"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.dev"
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+filterwarnings = ["ignore:No directory at.*staticfiles:UserWarning"]
+
+[tool.coverage.run]
+source = ["apps"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+
+[[tool.mypy.overrides]]
+module = ["environ"]
+ignore_missing_imports = true
