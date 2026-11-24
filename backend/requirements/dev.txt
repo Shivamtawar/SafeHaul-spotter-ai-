@@ -1,7 +1,7 @@
 -r base.txt
 django-stubs==6.1.2
 djangorestframework-stubs==3.18.2
-hypothesis==6.170.15
+hypothesis==6.170.17
 mypy==2.4.1
 pip-audit==2.10.1
 pytest-cov==7.1.0
